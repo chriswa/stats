@@ -19,6 +19,7 @@ internal class Settings: NSStackView, Settings_v {
     private var fansSyncState: Bool = false
     private var unknownSensorsState: Bool = false
     private var fanValueState: FanValue = .percentage
+    private var barChartMode: SensorsBarChartMode = .hottest
     
     public var callback: (() -> Void) = {}
     public var HIDcallback: (() -> Void) = {}
@@ -45,6 +46,7 @@ internal class Settings: NSStackView, Settings_v {
         self.fansSyncState = Store.shared.bool(key: "\(self.title)_fansSync", defaultValue: self.fansSyncState)
         self.unknownSensorsState = Store.shared.bool(key: "\(self.title)_unknown", defaultValue: self.unknownSensorsState)
         self.fanValueState = FanValue(rawValue: Store.shared.string(key: "\(self.title)_fanValue", defaultValue: self.fanValueState.rawValue)) ?? .percentage
+        self.barChartMode = SensorsBarChartMode(rawValue: Store.shared.string(key: "\(self.title)_barChartMode", defaultValue: self.barChartMode.rawValue)) ?? .hottest
         self.selectedSensor = Store.shared.string(key: "\(self.title)_sensor", defaultValue: self.selectedSensor)
         
         self.addArrangedSubview(PreferencesSection([
@@ -87,6 +89,11 @@ internal class Settings: NSStackView, Settings_v {
             action: #selector(self.handleSelection),
             items: [],
             selected: self.selectedSensor)
+        ))
+        sensorsRows.append(PreferencesRow(localizedString("Bar chart shows"), id: "bar_chart_mode", component: selectView(
+            action: #selector(self.toggleBarChartMode),
+            items: SensorsBarChartModes,
+            selected: self.barChartMode.rawValue)
         ))
         let sensorsPrefs = PreferencesSection(sensorsRows)
         self.sensorsPrefs = sensorsPrefs
@@ -144,6 +151,10 @@ internal class Settings: NSStackView, Settings_v {
             self.addArrangedSubview(section)
         }
         
+        if let row = self.sensorsPrefs?.findRow("bar_chart_mode") {
+            self.sensorsPrefs?.setRowVisibility(row, newState: widgets.contains(where: { $0 == .barChart }))
+        }
+        
         if let row = self.sensorsPrefs?.findRow("active_sensor") {
             self.sensorsPrefs?.setRowVisibility(row, newState: widgets.contains(where: { $0 == .mini }))
             row.replaceComponent(with: selectView(
@@ -196,6 +207,12 @@ internal class Settings: NSStackView, Settings_v {
             Store.shared.set(key: "\(self.title)_fanValue", value: self.fanValueState.rawValue)
             self.callback()
         }
+    }
+    @objc private func toggleBarChartMode(_ sender: NSMenuItem) {
+        guard let key = sender.representedObject as? String, let value = SensorsBarChartMode(rawValue: key) else { return }
+        self.barChartMode = value
+        Store.shared.set(key: "\(self.title)_barChartMode", value: self.barChartMode.rawValue)
+        self.callback()
     }
     @objc private func handleSelection(_ sender: NSPopUpButton) {
         guard let item = sender.selectedItem, let id = item.representedObject as? String else { return }

@@ -21,6 +21,25 @@ public enum SensorGroup: String, Codable {
     case unknown = "Unknown"
 }
 
+// What the menu bar's bar chart widget plots. The widget started out as a fan
+// chart — one bar per fan — which is why a machine with two fans shows two bars
+// and nothing about temperature.
+public enum SensorsBarChartMode: String {
+    case fans
+    case hottest
+    case both
+}
+public let SensorsBarChartModes: [KeyValue_t] = [
+    KeyValue_t(key: "hottest", value: "Hottest temperature", additional: SensorsBarChartMode.hottest),
+    KeyValue_t(key: "fans", value: "Fans", additional: SensorsBarChartMode.fans),
+    KeyValue_t(key: "both", value: "Hottest temperature and fans", additional: SensorsBarChartMode.both)
+]
+
+// Full scale for a temperature bar, in Celsius. Picked to match the Mini widget,
+// which also divides by 100, and to put the bar chart's utilization colouring
+// (amber from 60%, red from 80%) on 60°C and 80°C.
+public let SensorsTemperatureScale: Double = 100
+
 public enum SensorType: String, Codable {
     case temperature = "Temperature"
     case voltage = "Voltage"

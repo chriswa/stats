@@ -215,6 +215,10 @@ internal class SensorsReader: Reader<Sensors_List> {
                 }
             }
         }
+        if let hottest = self.plausibleTemperatures(sensors).max(),
+           let idx = sensors.firstIndex(where: { $0.key == "Hottest" }) {
+            sensors[idx].value = hottest
+        }
         if !fanSensors.isEmpty && fanSensors.count > 1 {
             if let f = fanSensors.max(by: { $0.value < $1.value }) as? Fan {
                 if let idx = sensors.firstIndex(where: { $0.key == "Fastest fan" }) {
@@ -299,6 +303,12 @@ internal class SensorsReader: Reader<Sensors_List> {
             if let f = fanSensors.max(by: { $0.value < $1.value }) as? Fan {
                 list.append(Fan(id: -1, key: "Fastest fan", name: "Fastest fan", minSpeed: f.minSpeed, maxSpeed: f.maxSpeed, value: f.value, mode: .automatic, isComputed: true))
             }
+        }
+        // The machine's hot spot: the maximum across every temperature sensor,
+        // not just one group's like "Hottest CPU" and "Hottest GPU" above.
+        let allTemperatures = self.plausibleTemperatures(sensors)
+        if !allTemperatures.isEmpty {
+            list.append(Sensor(key: "Hottest", name: "Hottest", value: allTemperatures.max() ?? 0, group: .sensor, type: .temperature, platforms: Platform.all, isComputed: true))
         }
         
         // Init total power since launched, only if Total Power sensor is available
@@ -431,6 +441,22 @@ extension SensorsReader {
         }
         
         return (page, usage, eventType)
+    }
+    
+    /// Every temperature reading that could plausibly be a real one, in Celsius.
+    ///
+    /// Computed sensors are excluded so a maximum taken over this cannot fold in
+    /// its own previous output. Unknown sensors are excluded while they are
+    /// switched off, because `read()` stops refreshing them and a stale value
+    /// would otherwise pin the maximum forever. The 110 ceiling is the same
+    /// sanity bound the setup filters apply — a sensor reporting nonsense must
+    /// not become the answer.
+    private func plausibleTemperatures(_ sensors: [Sensor_p]) -> [Double] {
+        sensors.filter { (s: Sensor_p) -> Bool in
+            guard s.type == .temperature, !s.isComputed else { return false }
+            if s.group == .unknown && !self.unknownSensorsState { return false }
+            return s.value > 0 && s.value < 110
+        }.map { $0.value }
     }
     
     private func initHIDSensors() -> [Sensor] {

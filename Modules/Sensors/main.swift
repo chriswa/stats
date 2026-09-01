@@ -22,6 +22,9 @@ public class Sensors: Module {
     private var fanValueState: FanValue {
         FanValue(rawValue: Store.shared.string(key: "\(self.config.name)_fanValue", defaultValue: "percentage")) ?? .percentage
     }
+    private var barChartMode: SensorsBarChartMode {
+        SensorsBarChartMode(rawValue: Store.shared.string(key: "\(self.config.name)_barChartMode", defaultValue: SensorsBarChartMode.hottest.rawValue)) ?? .hottest
+    }
     
     private var selectedSensor: String
     
@@ -143,9 +146,17 @@ public class Sensors: Module {
                 widget.setValues(list)
             case let widget as BarChart:
                 var flatList: [[ColorValue]] = []
-                value.sensors.filter{ $0 is Fan }.forEach { (s: Sensor_p) in
-                    if s.state, let f = s as? Fan {
-                        flatList.append([ColorValue(Double(f.percentage) / 100)])
+                let mode = self.barChartMode
+                if mode != .fans, let hottest = value.sensors.first(where: { $0.key == "Hottest" }) {
+                    // Raw Celsius rather than `localValue`, so the bar means the
+                    // same thing whether the popup is showing °C or °F.
+                    flatList.append([ColorValue(min(hottest.value / SensorsTemperatureScale, 1))])
+                }
+                if mode != .hottest {
+                    value.sensors.filter{ $0 is Fan }.forEach { (s: Sensor_p) in
+                        if s.state, let f = s as? Fan {
+                            flatList.append([ColorValue(Double(f.percentage) / 100)])
+                        }
                     }
                 }
                 widget.setValue(flatList)
