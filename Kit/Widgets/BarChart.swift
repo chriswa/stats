@@ -126,23 +126,32 @@ public class BarChart: WidgetWrapper {
         let lineWidth = 1 / (NSScreen.main?.backingScaleFactor ?? 1)
         let offset = lineWidth / 2
         
+        // How wide the bars themselves are, before the box and the optional label.
+        // Deliberately non-linear: a handful of bars each get a readable slice,
+        // while dense charts compress instead of growing the widget without limit.
+        var chartWidth: CGFloat
         switch value.count {
         case 0, 1:
-            width += 10 + (offset*2)
+            chartWidth = 10
         case 2:
-            width += 22
+            chartWidth = 22
         case 3...4: // 3,4
-            width += 30
+            chartWidth = 30
         case 5...8: // 5,6,7,8
-            width += 40
+            chartWidth = 40
         case 9...12: // 9..12
-            width += 50
+            chartWidth = 50
         case 13...16: // 13..16
-            width += 76
+            chartWidth = 76
         case 17...32: // 17..32
-            width += 84
+            chartWidth = 84
         default: // > 32
-            width += 118
+            chartWidth = 118
+        }
+        
+        width += (chartWidth * Constants.Widget.barChartThickness).rounded()
+        if value.count <= 1 {
+            width += offset*2
         }
         
         if self.labelState {

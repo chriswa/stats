@@ -40,6 +40,13 @@ public struct Widget_c_s {
         get { CGPoint(x: 0, y: 2) }
     }
     public let spacing: CGFloat = 2
+    
+    // Scales the bar chart's width table (Kit/Widgets/BarChart.swift). 1.0 is the
+    // upstream thickness; 0.5 halves every bar. One number rather than eight, so
+    // the whole family of bar charts stays in proportion when it is tuned.
+    // Dense charts feel it hardest: per-core CPU on a 16-core machine is already
+    // the thinnest case at 1.0, so raise this if those bars stop reading.
+    public let barChartThickness: CGFloat = 0.5
 }
 
 public struct Constants {
