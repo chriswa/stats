@@ -24,7 +24,9 @@ extension CWPHYMode: @retroactive CustomStringConvertible {
         case .mode11g:  return "802.11g"
         case .mode11n:  return "802.11n"
         case .mode11ax: return "802.11ax"
-        case .mode11be: return "802.11be"
+        // 802.11be (Wi-Fi 7) has no .mode11be case in the current SDK's CWPHYMode
+        // enum — Apple documents kCWPHYMode11be but never added the constant — so it
+        // resolves through @unknown default below until the SDK defines it.
         case .modeNone: return "none"
         @unknown default: return "unknown"
         }
