@@ -177,7 +177,7 @@ public class BarChart: WidgetWrapper {
         ), xRadius: 2, yRadius: 2)
         
         if self.boxState {
-            (isDarkMode ? NSColor.white : NSColor.black).set()
+            NSColor.black.set()
             box.stroke()
             box.fill()
         }
@@ -203,7 +203,7 @@ public class BarChart: WidgetWrapper {
                     case .pressure: pressureLevel.pressureColor().set()
                     case .monochrome:
                         if self.boxState {
-                            (isDarkMode ? NSColor.black : NSColor.white).set()
+                            NSColor.white.set()
                         } else {
                             (isDarkMode ? NSColor.white : NSColor.black).set()
                         }
@@ -223,7 +223,9 @@ public class BarChart: WidgetWrapper {
         }
         
         if self.boxState || self.frameState {
-            (isDarkMode ? NSColor.white : NSColor.black).set()
+            // Dim white hairline: gives the black box a visible edge without the
+            // solid-white frame reading as a hard line around each chart.
+            NSColor(white: 1, alpha: 0.25).set()
             box.lineWidth = lineWidth
             box.stroke()
         }
