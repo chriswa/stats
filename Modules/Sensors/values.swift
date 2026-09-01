@@ -35,10 +35,12 @@ public let SensorsBarChartModes: [KeyValue_t] = [
     KeyValue_t(key: "both", value: "Hottest temperature and fans", additional: SensorsBarChartMode.both)
 ]
 
-// Full scale for a temperature bar, in Celsius. Picked to match the Mini widget,
-// which also divides by 100, and to put the bar chart's utilization colouring
-// (amber from 60%, red from 80%) on 60°C and 80°C.
-public let SensorsTemperatureScale: Double = 100
+// The range a temperature bar spans, in Celsius. It starts at 50 rather than 0
+// because a machine idling at 50°C is perfectly happy, and a bar that sits half
+// full at rest spends half its height saying nothing. The top matches the Mini
+// widget's 100°C, and the bar chart's utilization colouring (amber from 60%,
+// red from 80%) lands on 80°C and 90°C.
+public let SensorsTemperatureRange: ClosedRange<Double> = 50...100
 
 public enum SensorType: String, Codable {
     case temperature = "Temperature"

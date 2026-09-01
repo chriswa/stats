@@ -150,7 +150,9 @@ public class Sensors: Module {
                 if mode != .fans, let hottest = value.sensors.first(where: { $0.key == "Hottest" }) {
                     // Raw Celsius rather than `localValue`, so the bar means the
                     // same thing whether the popup is showing °C or °F.
-                    flatList.append([ColorValue(min(hottest.value / SensorsTemperatureScale, 1))])
+                    let range = SensorsTemperatureRange
+                    let fraction = (hottest.value - range.lowerBound) / (range.upperBound - range.lowerBound)
+                    flatList.append([ColorValue(min(max(fraction, 0), 1))])
                 }
                 if mode != .hottest {
                     value.sensors.filter{ $0 is Fan }.forEach { (s: Sensor_p) in
