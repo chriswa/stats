@@ -47,6 +47,7 @@ internal class Settings: NSStackView, Settings_v, NSTextFieldDelegate {
     private var updateTopIntervalValue: Int = 1
     private var numberOfProcesses: Int = 8
     private var splitValueState: Bool = false
+    private var barChartMetric: RAMBarChartMetric = .usage
     private var notificationLevel: String = "Disabled"
     private var textValue: String = "$mem.used/$mem.total ($pressure.value)"
     private var combinedProcessesState: Bool = false
@@ -59,6 +60,7 @@ internal class Settings: NSStackView, Settings_v, NSTextFieldDelegate {
     public var setTopInterval: ((_ value: Int) -> Void) = {_ in }
     
     private let textWidgetHelpPanel: HelpHUD = HelpHUD(textWidgetHelp)
+    private var splitValueView: NSSwitch? = nil
     
     public init(_ module: ModuleType) {
         self.title = module.stringValue
@@ -66,6 +68,7 @@ internal class Settings: NSStackView, Settings_v, NSTextFieldDelegate {
         self.updateTopIntervalValue = Store.shared.int(key: "\(self.title)_updateTopInterval", defaultValue: self.updateTopIntervalValue)
         self.numberOfProcesses = Store.shared.int(key: "\(self.title)_processes", defaultValue: self.numberOfProcesses)
         self.splitValueState = Store.shared.bool(key: "\(self.title)_splitValue", defaultValue: self.splitValueState)
+        self.barChartMetric = RAMBarChartMetric(rawValue: Store.shared.string(key: "\(self.title)_barChartMetric", defaultValue: self.barChartMetric.rawValue)) ?? self.barChartMetric
         self.notificationLevel = Store.shared.string(key: "\(self.title)_notificationLevel", defaultValue: self.notificationLevel)
         self.textValue = Store.shared.string(key: "\(self.title)_textWidgetValue", defaultValue: self.textValue)
         self.combinedProcessesState = Store.shared.bool(key: "\(self.title)_combinedProcesses", defaultValue: self.combinedProcessesState)
@@ -110,11 +113,21 @@ internal class Settings: NSStackView, Settings_v, NSTextFieldDelegate {
         ]))
         
         if !widgets.filter({ $0 == .barChart }).isEmpty {
+            self.splitValueView = switchView(
+                action: #selector(toggleSplitValue),
+                state: self.splitValueState
+            )
+            self.splitValueView?.isEnabled = self.barChartMetric == .usage
             self.addArrangedSubview(PreferencesSection([
-                PreferencesRow(localizedString("Split the value (App/Wired/Compressed)"), component: switchView(
-                    action: #selector(toggleSplitValue),
-                    state: self.splitValueState
-                ))
+                PreferencesRow(localizedString("Bar chart metric"), component: selectView(
+                    action: #selector(changeBarChartMetric),
+                    items: [
+                        KeyValue_t(key: RAMBarChartMetric.usage.rawValue, value: localizedString("Memory usage")),
+                        KeyValue_t(key: RAMBarChartMetric.pressure.rawValue, value: localizedString("Memory pressure score"))
+                    ],
+                    selected: self.barChartMetric.rawValue
+                )),
+                PreferencesRow(localizedString("Split the value (App/Wired/Compressed)"), component: self.splitValueView!)
             ]))
         }
         
@@ -167,6 +180,19 @@ internal class Settings: NSStackView, Settings_v, NSTextFieldDelegate {
     @objc private func toggleSplitValue(_ sender: NSControl) {
         self.splitValueState = controlState(sender)
         Store.shared.set(key: "\(self.title)_splitValue", value: self.splitValueState)
+        self.callback()
+    }
+    @objc private func changeBarChartMetric(_ sender: NSMenuItem) {
+        guard let key = sender.representedObject as? String, let metric = RAMBarChartMetric(rawValue: key) else { return }
+        self.barChartMetric = metric
+        Store.shared.set(key: "\(self.title)_barChartMetric", value: metric.rawValue)
+
+        if metric == .pressure {
+            self.splitValueState = false
+            Store.shared.set(key: "\(self.title)_splitValue", value: self.splitValueState)
+            self.splitValueView?.state = .off
+        }
+        self.splitValueView?.isEnabled = metric == .usage
         self.callback()
     }
     @objc private func toggleCombinedProcesses(_ sender: NSControl) {

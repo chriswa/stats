@@ -20,6 +20,7 @@ public struct RAM_Usage: Codable, RemoteType {
     
     var active: Double
     var inactive: Double
+    var speculative: Double
     var wired: Double
     var compressed: Double
     
@@ -34,6 +35,16 @@ public struct RAM_Usage: Codable, RemoteType {
     
     public var usage: Double {
         get { Double((self.total - self.free) / self.total) }
+    }
+
+    /// A continuous approximation of the VM pressure decision, where 0 is
+    /// unconstrained and 1 is the most constrained. XNU defines available
+    /// non-compressed memory as active + inactive + free + speculative.
+    public var pressureScore: Double {
+        let nonCompressedAvailable = self.active + self.inactive + self.free + self.speculative
+        let available = nonCompressedAvailable + self.compressed
+        guard available > 0 else { return 0 }
+        return min(max(1 - (nonCompressedAvailable / available), 0), 1)
     }
     
     public func remote() -> Data? {
@@ -53,6 +64,11 @@ public struct Pressure: Codable {
     let value: RAMPressure
 }
 
+enum RAMBarChartMetric: String {
+    case usage
+    case pressure
+}
+
 public class RAM: Module {
     private let popupView: Popup
     private let settingsView: Settings
@@ -65,6 +81,10 @@ public class RAM: Module {
     
     private var splitValueState: Bool {
         return Store.shared.bool(key: "\(self.config.name)_splitValue", defaultValue: false)
+    }
+    private var barChartMetric: RAMBarChartMetric {
+        let key = Store.shared.string(key: "\(self.config.name)_barChartMetric", defaultValue: RAMBarChartMetric.usage.rawValue)
+        return RAMBarChartMetric(rawValue: key) ?? .usage
     }
     private var appColor: NSColor {
         let color = SColor.secondBlue
@@ -164,7 +184,13 @@ public class RAM: Module {
                 widget.setValue(value.usage)
                 widget.setPressure(value.pressure.value)
             case let widget as BarChart:
-                if self.splitValueState {
+                if self.barChartMetric == .pressure {
+                    // A higher score means less non-compressed working-set headroom.
+                    // The kernel's rising warning and critical thresholds are about
+                    // 0.50 and 0.652 respectively.
+                    widget.setValue([[ColorValue(value.pressureScore)]])
+                    widget.setColorZones((0.5, 0.652))
+                } else if self.splitValueState {
                     widget.setValue([[
                         ColorValue(value.app/total, color: self.appColor),
                         ColorValue(value.wired/total, color: self.wiredColor),

@@ -23,6 +23,7 @@ public struct RAM_entry: TimelineEntry {
             free: 15365996544.0,
             active: 14518042624.0,
             inactive: 13899530240.0,
+            speculative: 0,
             wired: 2209333248.0,
             compressed: 414629888.0,
             app: 16369778688.0,

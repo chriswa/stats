@@ -80,6 +80,7 @@ internal class UsageReader: Reader<RAM_Usage> {
                 
                 active: active,
                 inactive: inactive,
+                speculative: speculative,
                 wired: wired,
                 compressed: compressed,
                 
